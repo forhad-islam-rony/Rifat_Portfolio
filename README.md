@@ -141,11 +141,31 @@ from step 3. You now manage everything from the dashboard. 🎉
 1. Push this project to a **GitHub** repository.
 2. In Vercel, go to **Add New... → Project** and import the repository.
 3. Vercel auto-detects this as a Next.js app, so the build settings are handled automatically.
-4. Under **Project Settings → Environment Variables**, add these values:
+4. Under **Project Settings → Environment Variables**, add these values
+   (select **all three** environments: Production, Preview, Development):
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `NEXT_PUBLIC_SITE_URL` → your final Vercel URL (for example, `https://your-project.vercel.app`)
 5. Click **Deploy**.
+
+### ⚠️ If the site (or /login) shows an error on Vercel — checklist
+
+`NEXT_PUBLIC_*` variables are **baked into the build**, so getting them wrong is the
+usual cause. Work through these in order:
+
+1. **No stray spaces.** Paste the value with *no* leading/trailing space and no quotes.
+   `NEXT_PUBLIC_SUPABASE_URL` must be exactly `https://xxxx.supabase.co`
+   (no trailing slash, no space). This is the #1 cause.
+2. **Redeploy after adding variables.** Env vars added *after* a deploy do **not**
+   apply to it. Go to **Deployments → ⋯ → Redeploy** (untick "use existing build cache").
+3. **All three environments ticked** when you added each variable (Production especially).
+4. **Create the admin user.** Login fails with *"Invalid login credentials"* until you add a
+   user in **Supabase → Authentication → Users → Add user** (tick *Auto Confirm User*).
+5. **Run the SQL.** In **Supabase → SQL Editor**, run [`supabase/schema.sql`](supabase/schema.sql)
+   then [`supabase/seed.sql`](supabase/seed.sql).
+6. Still stuck? Open **Vercel → your deployment → Logs** (or the Runtime Logs tab) and read the
+   actual error — the app is now hardened so the middleware can't 500 the site, so any remaining
+   problem will show a clear message on the login form instead.
 
 > Vercel is the recommended deployment target for this Next.js app.
 

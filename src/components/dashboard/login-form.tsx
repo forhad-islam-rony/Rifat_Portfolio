@@ -29,7 +29,17 @@ export function LoginForm() {
       router.replace(redirect);
       router.refresh();
     } catch (err: any) {
-      setError(err?.message || "Invalid email or password.");
+      const message: string = err?.message || "Invalid email or password.";
+      // A "fetch" failure almost always means the Supabase URL/key env vars
+      // are missing or malformed on the host (e.g. a stray space, or the
+      // project wasn't redeployed after adding them).
+      if (/fetch|network|url|key are required/i.test(message)) {
+        setError(
+          "Couldn't reach Supabase. Check that NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set correctly (no extra spaces) and that the project was redeployed."
+        );
+      } else {
+        setError(message);
+      }
       setLoading(false);
     }
   }
