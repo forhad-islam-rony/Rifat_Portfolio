@@ -1,0 +1,147 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0d1117;
+  --fg: #e6edf3;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(245, 158, 11, 0.28);
+  color: #fff;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+::-webkit-scrollbar-track {
+  background: #0d1117;
+}
+::-webkit-scrollbar-thumb {
+  background: #262d38;
+  border-radius: 999px;
+  border: 2px solid #0d1117;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #30363d;
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+  }
+  .container-narrow {
+    @apply mx-auto w-full max-w-4xl px-5 sm:px-8;
+  }
+
+  /* Monospace section index / eyebrow */
+  .mono-label {
+    @apply inline-flex items-center gap-2 font-mono text-xs font-medium uppercase tracking-[0.22em] text-amber-500;
+  }
+  .mono-dim {
+    @apply font-mono text-xs uppercase tracking-[0.18em] text-fg-faint;
+  }
+
+  .display {
+    @apply font-display font-semibold tracking-tight text-fg;
+  }
+
+  /* Gradient text accent */
+  .text-gradient {
+    @apply bg-gradient-to-r from-amber-400 via-amber-300 to-cyan-400 bg-clip-text text-transparent;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-graphite-900;
+  }
+  .btn-primary {
+    @apply btn bg-amber-500 text-graphite-950 hover:bg-amber-400 hover:shadow-glow;
+  }
+  .btn-cyan {
+    @apply btn bg-cyan-400 text-graphite-950 hover:bg-cyan-300 hover:shadow-glow-cyan;
+  }
+  .btn-ghost {
+    @apply btn border border-line-strong bg-graphite-800/60 text-fg hover:border-amber-500/50 hover:bg-graphite-700;
+  }
+
+  /* Panels */
+  .panel {
+    @apply rounded-xl border border-line bg-graphite-800/70 shadow-panel backdrop-blur-sm;
+  }
+  .panel-hover {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:border-amber-500/40 hover:shadow-glow;
+  }
+
+  /* Chip / tag */
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-md border border-line-strong bg-graphite-750 px-2.5 py-1 font-mono text-[11px] font-medium text-fg-muted;
+  }
+
+  .divider {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-line-strong to-transparent;
+  }
+
+  .link-arrow {
+    @apply inline-flex items-center gap-1.5 font-medium text-amber-400 transition-colors hover:text-amber-300;
+  }
+}
+
+/* Scroll reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Spotlight card — CSS var driven glow following cursor */
+.spotlight {
+  position: relative;
+}
+.spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  background: radial-gradient(
+    340px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(245, 158, 11, 0.14),
+    transparent 60%
+  );
+  pointer-events: none;
+}
+.spotlight:hover::before {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
