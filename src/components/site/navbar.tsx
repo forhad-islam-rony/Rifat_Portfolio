@@ -52,7 +52,7 @@ export function Navbar() {
                 Rifat Rafiu
               </span>
               <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-amber-500">
-                MSE · Researcher
+                Materials Science · Research Enthusiast
               </span>
             </span>
           </Link>
