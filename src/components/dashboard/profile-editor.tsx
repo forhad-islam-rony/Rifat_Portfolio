@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Upload, CheckCircle2, FileText, ImageIcon } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { api } from "@/lib/api-client";
 import type { Profile } from "@/lib/types";
 import { PageHeader, DashCard, Field, TextInput, TextArea, Spinner } from "./ui";
 
@@ -63,10 +63,14 @@ export function ProfileEditor() {
   const [uploading, setUploading] = useState<"photo" | "cv" | null>(null);
 
   const load = useCallback(async () => {
-    const supabase = createClient();
-    const { data } = await supabase.from("profile").select("*").limit(1).maybeSingle();
-    setProfile(data as Profile);
-    setLoading(false);
+    try {
+      const { profile } = await api<{ profile: Profile | null }>("/api/admin/profile");
+      setProfile(profile);
+    } catch (err: any) {
+      setError(err?.message || "Could not load profile.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -83,16 +87,11 @@ export function ProfileEditor() {
     setUploading(kind);
     setError("");
     try {
-      const supabase = createClient();
-      const bucket = kind === "photo" ? "avatars" : "documents";
-      const ext = file.name.split(".").pop();
-      const path = `${kind}-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from(bucket)
-        .upload(path, file, { upsert: true });
-      if (upErr) throw upErr;
-      const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-      set(kind === "photo" ? "photo_url" : "cv_url", data.publicUrl as any);
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("kind", kind);
+      const { url } = await api<{ url: string }>("/api/admin/upload", { method: "POST", body: fd });
+      set(kind === "photo" ? "photo_url" : "cv_url", url as any);
     } catch (err: any) {
       setError(err?.message || "Upload failed.");
     } finally {
@@ -105,18 +104,10 @@ export function ProfileEditor() {
     setSaving(true);
     setError("");
     try {
-      const supabase = createClient();
       const { id, updated_at, ...rest } = profile as any;
-      const payload = { ...rest, updated_at: new Date().toISOString() };
-      let result;
-      if (id) {
-        result = await supabase.from("profile").update(payload).eq("id", id);
-      } else {
-        result = await supabase.from("profile").insert(payload);
-      }
-      if (result.error) throw result.error;
+      const { profile: saved } = await api<{ profile: Profile }>("/api/admin/profile", { method: "PUT", json: rest });
+      setProfile(saved);
       setSaved(true);
-      await load();
     } catch (err: any) {
       setError(err?.message || "Could not save profile.");
     } finally {
@@ -128,8 +119,16 @@ export function ProfileEditor() {
   if (!profile)
     return (
       <div className="rounded-xl border border-dashed border-line-strong p-8 text-center text-fg-muted">
-        No profile row found. Run <code className="font-mono">supabase/seed.sql</code> to
-        create one, then refresh.
+        {error ? (
+          <span className="text-red-300">{error}</span>
+        ) : (
+          <>
+            No profile yet.{" "}
+            <button className="text-amber-400 underline" onClick={() => setProfile({ full_name: "" } as Profile)}>
+              Create one
+            </button>
+          </>
+        )}
       </div>
     );
 

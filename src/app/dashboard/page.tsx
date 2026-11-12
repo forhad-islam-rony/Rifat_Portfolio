@@ -12,37 +12,30 @@ import {
   ShieldCheck,
   ScrollText,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getDb, pingDb } from "@/lib/server/mongodb";
+import { friendlyDbError } from "@/lib/server/session";
+import { BackupPanel } from "@/components/dashboard/backup-panel";
 
-async function count(table: string) {
-  const supabase = createClient();
-  const { count } = await supabase
-    .from(table)
-    .select("*", { count: "exact", head: true });
-  return count || 0;
-}
+export const dynamic = "force-dynamic";
 
 export default async function DashboardOverview() {
-  if (!isSupabaseConfigured) return null;
+  const health = await pingDb();
 
-  const supabase = createClient();
+  let pubs = 0,
+    reviews = 0,
+    unread = 0;
+  type ProfileSummary = { full_name?: string; citations?: number; h_index?: number };
+  let profile = null as ProfileSummary | null;
 
-  const [pubs, areas, reviews, unreadRes, profileRes] = await Promise.all([
-    count("publications"),
-    count("research_areas"),
-    count("peer_reviews"),
-    supabase
-      .from("messages")
-      .select("*", { count: "exact", head: true })
-      .eq("is_read", false),
-    supabase.from("profile").select("full_name, citations, h_index").limit(1).maybeSingle(),
-  ]);
-
-  const unread = unreadRes.count || 0;
-  const profile = profileRes.data as
-    | { full_name: string; citations: number; h_index: number }
-    | null;
+  if (health.ok) {
+    const db = await getDb();
+    [pubs, reviews, unread, profile] = await Promise.all([
+      db.collection("publications").countDocuments(),
+      db.collection("peer_reviews").countDocuments(),
+      db.collection("messages").countDocuments({ is_read: false }),
+      db.collection("profile").findOne({}, { sort: { _id: 1 }, projection: { full_name: 1, citations: 1, h_index: 1 } }) as Promise<ProfileSummary | null>,
+    ]);
+  }
 
   const stats = [
     { label: "Publications", value: pubs, href: "/dashboard/publications", icon: BookMarked },
@@ -73,6 +66,16 @@ export default async function DashboardOverview() {
           Everything on your public portfolio can be managed here — no code required.
         </p>
       </div>
+
+      {!health.ok && (
+        <div className="mb-8 rounded-xl border border-red-500/40 bg-red-500/10 p-5 text-sm text-red-200">
+          <p className="font-semibold text-red-300">Database not connected</p>
+          <p className="mt-1 leading-relaxed">
+            {friendlyDbError(health.error)} Your public site is showing the built-in default
+            content until this is fixed. Changes can&apos;t be saved right now.
+          </p>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -113,6 +116,9 @@ export default async function DashboardOverview() {
           </Link>
         ))}
       </div>
+
+      {/* Backup / restore */}
+      <BackupPanel />
 
       {/* View site */}
       <div className="mt-10 flex items-center justify-between rounded-xl border border-line bg-gradient-to-br from-graphite-800 to-graphite-900 p-6">

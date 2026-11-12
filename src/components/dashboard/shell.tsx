@@ -21,7 +21,6 @@ import {
   ShieldCheck,
   ScrollText,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
 const links = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
@@ -49,8 +48,7 @@ export function DashboardShell({
   const [open, setOpen] = useState(false);
 
   async function signOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     router.replace("/login");
     router.refresh();
   }

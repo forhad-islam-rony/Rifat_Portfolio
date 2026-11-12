@@ -2,9 +2,9 @@ import type { PortfolioData } from "./types";
 
 /**
  * Static fallback content.
- * The site renders from this data when Supabase is not configured yet, so the
- * portfolio looks complete out of the box. Once Supabase env vars are set and
- * the seed has run, live database content is used instead.
+ * The site renders from this data when MongoDB is not configured or reachable, and is
+ * copied into the database automatically on first connection. After that
+ * the database is the source of truth.
  */
 export const staticData: PortfolioData = {
   profile: {

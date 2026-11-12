@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, GripVertical } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { api } from "@/lib/api-client";
 import {
   PageHeader,
   Modal,
@@ -54,15 +54,19 @@ export function CollectionManager({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  const [loadError, setLoadError] = useState("");
+
   const load = useCallback(async () => {
     setLoading(true);
-    const supabase = createClient();
-    const { data } = await supabase
-      .from(table)
-      .select("*")
-      .order("sort_order", { ascending: true });
-    setRows(data || []);
-    setLoading(false);
+    setLoadError("");
+    try {
+      const { items } = await api<{ items: Row[] }>(`/api/admin/${table}`);
+      setRows(items);
+    } catch (err: any) {
+      setLoadError(err?.message || "Could not load items.");
+    } finally {
+      setLoading(false);
+    }
   }, [table]);
 
   useEffect(() => {
@@ -114,16 +118,11 @@ export function CollectionManager({
     });
 
     try {
-      const supabase = createClient();
+      const { id: _id, created_at, updated_at, ...body } = payload;
       if (editing?.id) {
-        const { error } = await supabase
-          .from(table)
-          .update(payload)
-          .eq("id", editing.id);
-        if (error) throw error;
+        await api(`/api/admin/${table}/${editing.id}`, { method: "PATCH", json: body });
       } else {
-        const { error } = await supabase.from(table).insert(payload);
-        if (error) throw error;
+        await api(`/api/admin/${table}`, { method: "POST", json: body });
       }
       setModalOpen(false);
       await load();
@@ -137,8 +136,11 @@ export function CollectionManager({
   async function remove(row: Row) {
     if (!row.id) return;
     if (!confirm(`Delete "${primary(row)}"? This cannot be undone.`)) return;
-    const supabase = createClient();
-    await supabase.from(table).delete().eq("id", row.id);
+    try {
+      await api(`/api/admin/${table}/${row.id}`, { method: "DELETE" });
+    } catch (err: any) {
+      alert(err?.message || "Could not delete.");
+    }
     await load();
   }
 
@@ -156,6 +158,10 @@ export function CollectionManager({
 
       {loading ? (
         <Spinner />
+      ) : loadError ? (
+        <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          {loadError}
+        </p>
       ) : rows.length === 0 ? (
         <EmptyState message="Nothing here yet. Click “Add” to create your first entry." />
       ) : (

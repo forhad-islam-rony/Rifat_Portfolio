@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, LogIn, AlertCircle } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const redirect = params.get("redirect") || "/dashboard";
+  const requested = params.get("redirect") || "";
+  // Only allow redirects back into the dashboard (prevents open-redirects).
+  const redirect = requested.startsWith("/dashboard") ? requested : "/dashboard";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,26 +21,18 @@ export function LoginForm() {
     setLoading(true);
     setError("");
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
-      if (error) throw error;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Invalid email or password.");
       router.replace(redirect);
       router.refresh();
     } catch (err: any) {
       const message: string = err?.message || "Invalid email or password.";
-      // A "fetch" failure almost always means the Supabase URL/key env vars
-      // are missing or malformed on the host (e.g. a stray space, or the
-      // project wasn't redeployed after adding them).
-      if (/fetch|network|url|key are required/i.test(message)) {
-        setError(
-          "Couldn't reach Supabase. Check that NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set correctly (no extra spaces) and that the project was redeployed."
-        );
-      } else {
-        setError(message);
-      }
+      setError(/fetch|network/i.test(message) ? "Couldn't reach the server. Check your connection and try again." : message);
       setLoading(false);
     }
   }

@@ -29,3 +29,6 @@ yarn-error.log*
 
 # netlify
 .netlify
+
+# local database backups (contain your data — keep them, but out of git)
+/backups/

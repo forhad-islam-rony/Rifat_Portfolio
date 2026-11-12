@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Mail, MailOpen, Trash2, Reply } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { api } from "@/lib/api-client";
 import type { Message } from "@/lib/types";
 import { PageHeader, EmptyState, Spinner } from "./ui";
 
@@ -12,13 +12,14 @@ export function MessagesInbox() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("messages")
-      .select("*")
-      .order("created_at", { ascending: false });
-    setMessages((data as Message[]) || []);
-    setLoading(false);
+    try {
+      const { items } = await api<{ items: Message[] }>("/api/admin/messages");
+      setMessages(items);
+    } catch (err: any) {
+      alert(err?.message || "Could not load messages.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -26,18 +27,13 @@ export function MessagesInbox() {
   }, [load]);
 
   async function toggleRead(m: Message) {
-    const supabase = createClient();
-    await supabase
-      .from("messages")
-      .update({ is_read: !m.is_read })
-      .eq("id", m.id!);
+    await api(`/api/admin/messages/${m.id}`, { method: "PATCH", json: { is_read: !m.is_read } }).catch((e) => alert(e.message));
     load();
   }
 
   async function remove(m: Message) {
     if (!confirm("Delete this message?")) return;
-    const supabase = createClient();
-    await supabase.from("messages").delete().eq("id", m.id!);
+    await api(`/api/admin/messages/${m.id}`, { method: "DELETE" }).catch((e) => alert(e.message));
     load();
   }
 

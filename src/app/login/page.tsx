@@ -3,14 +3,17 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Hexagon, ArrowLeft } from "lucide-react";
 import { LoginForm } from "@/components/dashboard/login-form";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { isAuthConfigured } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Dashboard Login",
   robots: { index: false, follow: false },
 };
 
+export const dynamic = "force-dynamic";
+
 export default function LoginPage() {
+  const configured = isAuthConfigured();
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-graphite-950 px-5 py-12">
       <div className="pointer-events-none absolute inset-0 bg-grid-line [background-size:40px_40px] opacity-40 [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]" />
@@ -34,17 +37,20 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {isSupabaseConfigured ? (
+          {configured ? (
             <Suspense fallback={null}>
               <LoginForm />
             </Suspense>
           ) : (
             <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-200/90">
-              <p className="font-semibold text-amber-300">Supabase not connected yet</p>
+              <p className="font-semibold text-amber-300">Admin login not configured yet</p>
               <p className="mt-1 leading-relaxed">
-                Add your Supabase keys to <code className="font-mono">.env.local</code>{" "}
-                and create an admin user to enable dashboard login. See the{" "}
-                <code className="font-mono">README.md</code> for the 5-minute setup.
+                Set <code className="font-mono">ADMIN_EMAIL</code>,{" "}
+                <code className="font-mono">ADMIN_PASSWORD</code> and{" "}
+                <code className="font-mono">AUTH_SECRET</code> in{" "}
+                <code className="font-mono">.env.local</code> (or your hosting
+                provider&apos;s environment variables), then restart / redeploy. See{" "}
+                <code className="font-mono">README.md</code>.
               </p>
             </div>
           )}

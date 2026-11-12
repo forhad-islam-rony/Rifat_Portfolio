@@ -2,14 +2,12 @@
 
 import { useState } from "react";
 import { Send, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 type Status = "idle" | "loading" | "success" | "error";
 
 export function ContactForm({ toEmail }: { toEmail: string | null }) {
   const [status, setStatus] = useState<Status>("idle");
-  const [form, setForm] = useState({ name: "", email: "", subject: "", body: "" });
+  const [form, setForm] = useState({ name: "", email: "", subject: "", body: "", website: "" });
   const [errorMsg, setErrorMsg] = useState("");
 
   const update = (k: keyof typeof form) => (e: React.ChangeEvent<any>) =>
@@ -20,26 +18,30 @@ export function ContactForm({ toEmail }: { toEmail: string | null }) {
     setStatus("loading");
     setErrorMsg("");
 
-    if (!isSupabaseConfigured) {
+    const openMail = () => {
       const mail = `mailto:${toEmail || ""}?subject=${encodeURIComponent(
         form.subject || "Portfolio enquiry"
       )}&body=${encodeURIComponent(`${form.body}\n\n— ${form.name} (${form.email})`)}`;
       window.location.href = mail;
-      setStatus("success");
-      return;
-    }
+    };
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.from("messages").insert({
-        name: form.name,
-        email: form.email,
-        subject: form.subject,
-        body: form.body,
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
       });
-      if (error) throw error;
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 503 && data.error === "db_unavailable") {
+        // Database not reachable — fall back to the visitor's email app so the
+        // message is never lost.
+        openMail();
+        setStatus("success");
+        return;
+      }
+      if (!res.ok) throw new Error(data.error || "Something went wrong. Please try again.");
       setStatus("success");
-      setForm({ name: "", email: "", subject: "", body: "" });
+      setForm({ name: "", email: "", subject: "", body: "", website: "" });
     } catch (err: any) {
       setStatus("error");
       setErrorMsg(err?.message || "Something went wrong. Please try again.");
@@ -67,6 +69,17 @@ export function ContactForm({ toEmail }: { toEmail: string | null }) {
 
   return (
     <form onSubmit={handleSubmit} className="panel space-y-4 p-6 sm:p-8">
+      {/* Honeypot field for spam bots — hidden from humans */}
+      <input
+        type="text"
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        value={form.website}
+        onChange={update("website")}
+        className="hidden"
+        aria-hidden="true"
+      />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-1.5 block font-mono text-xs uppercase tracking-wider text-fg-muted">Name</label>

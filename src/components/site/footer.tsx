@@ -70,7 +70,7 @@ export function Footer({ profile }: { profile: Profile }) {
       <div className="border-t border-line">
         <div className="container-page flex flex-col items-center justify-between gap-3 py-5 font-mono text-xs text-fg-dim sm:flex-row">
           <p>© {year} {profile.full_name} — all rights reserved</p>
-          <p>Built with Next.js · Supabase · Tailwind</p>
+          <p>Built with Next.js · MongoDB · Tailwind</p>
         </div>
       </div>
     </footer>
